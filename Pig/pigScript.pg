@@ -1,0 +1,11 @@
+tempfile = load '/home/anil/v18_batch/vishnu/calldata.csv' USING PigStorage(',');
+define hex InvokeForString('java.lang.Integer.toHexString', 'int');
+register /home/anil/v18_batch/vishnu/hectodec.jar;
+register /home/anil/v18_batch/vishnu/piggybank-0.12.0.jar;
+fltdata = filter tempfile by $29 is not null AND $30 is not null;  
+convdata = foreach fltdata generate $19, StringConcat(HextoDec(SUBSTRING(hex((int)$19),0,5)),'-', HextoDec(SUBSTRING(hex((int)$19),5,7))), FLOOR($6/1.618), FLOOR($7/(1.618/COS(FLOOR($6/1.618)))),org.apache.pig.piggybank.evaluation.math.POW(10,(double)$29/10), org.apache.pig.piggybank.evaluation.math.POW(10,(double)$30/10), SUBSTRING($31,1,11),SUBSTRING($31,12,14);
+grpdata = group convdata by ($1,$2,$3,$6,$7);  
+avgdata = foreach grpdata generate flatten(group), 10*LOG10(AVG(convdata.$4)),10*LOG10(AVG(convdata.$5)), COUNT($1);
+export PIG_CLASSPATH=”`${HBASE_HOME}/bin/hbase classpath`:$PIG_CLASSPATH”
+export HADOOP_CLASSPATH=”`${HBASE_HOME}/bin/hbase classpath`:$HADOOP_CLASSPATH”
+STORE avgdata INTO 'hbase://Rfmap' USING org.apache.pig.backend.hadoop.hbase.HBaseStorage('data:$0 data:$1 data:$2 data:$5 data:$6 data:$3 data:$4 data:$7')
